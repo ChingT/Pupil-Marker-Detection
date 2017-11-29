@@ -1,7 +1,8 @@
 """
 
-To find the center by the marker detection algorithm
-To calculate the accuracy compared by the labeled position
+Find the center by circle_tracker.update()
+Write the debugs images
+calculate the fps
 
 """
 
@@ -25,34 +26,25 @@ duration = []
 image_count = 0
 
 for root, dirs, files in os.walk(Test_folder):
+    if "marked" in root:
+        continue
     files.sort()
     for file in files:
         if os.path.splitext(file)[-1] == '.jpg':
-            if "marked" in root:
-                continue
             if "2017_11_28-000-world-frame-" not in file:
               continue
             photo_name = file
             photo_path = os.path.join(root, file)
-
-            if not os.path.isfile(photo_path):
-                print("no existing photo: ", photo_path)
-                continue
             image = cv2.imread(photo_path)
-            image = cv2.resize(image, dsize=(0, 0), fx=0.5, fy=0.5)
-
             img_size = image.shape[::-1][1]
-
             gray_img = cv2.imread(photo_path, 0)
             print(photo_name)
-            image_count = image_count + 1
+            image_count += 1
+
             start_time = timeit.default_timer()
-
             current_markers = circle_tracker.update(gray_img)
-
             end_time = timeit.default_timer()
             duration.append(end_time - start_time)
-            image = cv2.resize(image, dsize=(0, 0), fx=2, fy=2)
 
             if photo_record_mode:
                 for i in range(len(current_markers)):
@@ -74,7 +66,6 @@ for root, dirs, files in os.walk(Test_folder):
                     temp = cv2.add(img_ellipse, mask_middle)
                     cv2.imwrite(os.path.join(marked_image_folder, "{0}-mask_middle.jpg".format(os.path.splitext(file)[0])), temp)
                 if mask_outer is not None:
-                    # temp = cv2.add(img_ellipse, mask_outer)
                     temp = cv2.add(img_ellipse, cv2.bitwise_not(mask_outer))
                     cv2.imwrite(os.path.join(marked_image_folder, "{0}-outer.jpg".format(os.path.splitext(file)[0])), temp)
                     cv2.imwrite(os.path.join(marked_image_folder, "{0}-mask_outer.jpg".format(os.path.splitext(file)[0])), mask_outer)
