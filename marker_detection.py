@@ -14,7 +14,7 @@ from circle_detector import CircleTracker
 
 
 photo_record_mode = True
-Test_folder = "2017_11_28-000-world"
+Test_folder = "2017_11_30-002-world"
 if photo_record_mode:
     marked_image_folder = "{0}/{0}-marked".format(Test_folder)
     if not os.path.exists(marked_image_folder):
@@ -32,7 +32,7 @@ for root, dirs, files in os.walk(Test_folder):
     for file in files:
         if os.path.splitext(file)[-1] != '.jpg':
             continue
-        if "2017_11_28-000-world-frame-" not in file:
+        if "2017_11_30-002-world-frame-00000" not in file:
           continue
         photo_name = os.path.splitext(file)[0]
         photo_path = os.path.join(root, file)
@@ -47,17 +47,24 @@ for root, dirs, files in os.walk(Test_folder):
         end_time = timeit.default_timer()
         duration.append(end_time - start_time)
 
+        if len(current_markers):
+            for i in range(len(current_markers)):
+                marker_pos = current_markers[i]['img_pos'][0], current_markers[i]['img_pos'][1]
+                s = current_markers[i]['ellipses'][-1][1][0], current_markers[i]['ellipses'][-1][1][1]
+                print(current_markers[i]['marker_type'], "marker found. Pos =", marker_pos, s)
+        else:
+            print("No marker found")
+
         if photo_record_mode:
             for i in range(len(current_markers)):
                 marker_pos = int(current_markers[i]['img_pos'][0]), int(current_markers[i]['img_pos'][1])
-                print(current_markers[i]['marker_type'], "marker found. Pos =", marker_pos)
                 color = (0, 0, 255) if current_markers[i]['marker_type'] == 'Stop' else (0, 255, 0)
                 for ellipse in current_markers[i]["ellipses"]:
                     cv2.ellipse(image, ellipse, color=color, thickness=1)
                 cv2.circle(image, marker_pos, 2, (0, 0, 255), -1)
             cv2.imwrite(os.path.join(marked_image_folder, "{}.jpg".format(photo_name)), image)
 
-            from circle_detector import edges, img_ellipse, mask_ring_dot, mask_outer, mask_middle
+            from circle_detector import edges, img_ellipse, mask_ring, mask_outer, mask_middle, mask_edge
 
             if edges is not None:
                 for i in range(len(edges)):
@@ -65,16 +72,19 @@ for root, dirs, files in os.walk(Test_folder):
             if img_ellipse is not None:
                 cv2.imwrite(os.path.join(marked_image_folder, "{0}-img_ellipse.jpg".format(photo_name)), img_ellipse)
 
-            if mask_ring_dot is not None and img_ellipse.shape[::-1] == mask_ring_dot.shape[::-1]:
-                temp = cv2.add(img_ellipse, mask_ring_dot)
+            if mask_ring is not None and img_ellipse.shape[::-1] == mask_ring.shape[::-1]:
+                temp = cv2.add(img_ellipse, mask_ring)
                 cv2.imwrite(os.path.join(marked_image_folder, "{0}-mask_ring.jpg".format(photo_name)), temp)
             if mask_middle is not None and img_ellipse.shape[::-1] == mask_middle.shape[::-1]:
                 temp = cv2.add(img_ellipse, mask_middle)
                 cv2.imwrite(os.path.join(marked_image_folder, "{0}-mask_middle.jpg".format(photo_name)), temp)
-            if mask_outer is not None and img_ellipse.shape[::-1] == mask_outer.shape[::-1]:
-                temp = cv2.add(img_ellipse, cv2.bitwise_not(mask_outer))
-                cv2.imwrite(os.path.join(marked_image_folder, "{0}-outer.jpg".format(photo_name)), temp)
+            if mask_outer is not None:
+                if len(current_markers) and img_ellipse.shape[::-1] == mask_outer.shape[::-1]:
+                    temp = cv2.add(img_ellipse, mask_outer)
+                    cv2.imwrite(os.path.join(marked_image_folder, "{0}-outer.jpg".format(photo_name)), temp)
                 cv2.imwrite(os.path.join(marked_image_folder, "{0}-mask_outer.jpg".format(photo_name)), mask_outer)
+            if mask_edge is not None:
+                cv2.imwrite(os.path.join(marked_image_folder, "{0}-mask_edge.jpg".format(photo_name)), mask_edge)
 
 Total_duration = np.array(duration).sum()
 
